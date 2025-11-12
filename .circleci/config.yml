@@ -36,7 +36,8 @@ jobs:
           name: Deploy to Railway App
           command: |
             cd bankchurn-api
-            railway up --service=serene-spontaneity-production.up.railway.app
+            railway login --apiKey "$RAILWAY_TOKEN"
+            railway up --service=serene-spontaneity
             railway up --detach
       - run:
           name: Update deployment status to running
