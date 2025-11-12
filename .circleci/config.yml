@@ -1,43 +1,51 @@
-version: 2.1
+version: '2.1'
+orbs:
+  node: circleci/node@5.1.0
+
+defaults: &defaults
+  docker:
+    - image: cimg/python:3.10
+  working_directory: ~/project
+
+prepare_venv: &prepare_venv
+  run:
+    name: Create venv
+    command: |
+      python -m venv venv
+      source venv/bin/activate
+      pip install --upgrade pip
 
 jobs:
   deploy_app_to_railway:
-    docker:
-      - image: cimg/node:20.9
-    working_directory: ~/project
+    <<: *defaults
     steps:
-      - checkout
-
+      - checkout:
+          path: ~/project/
+      - node/install:
+          node-version: '20.9'
+      - run: node --version 
+      - run: npm i -g @railway/cli
       - run:
-          name: Instalar Railway CLI
-          command: |
-            npm i -g @railway/cli
-            railway --version
-
-      - run:
-          name: Login Railway con token (no interactivo)
-          command: |
-            railway whoami || railway login --apiKey "$RAILWAY_TOKEN"
-
-      - run:
-          name: Linkear proyecto (evita prompts)
-          command: |
-            if [ -n "$RAILWAY_PROJECT_ID" ]; then
-              railway link -p "$RAILWAY_PROJECT_ID"
-            fi
-            railway status || true
-
-      - run:
-          name: Desplegar a Railway
+          name: Deploy to Railway App
           command: |
             cd bankchurn-api
-            if [ -n "$RAILWAY_SERVICE_NAME" ]; then
-              railway up --service "$RAILWAY_SERVICE_NAME" --detach
-            else
-              railway up --service "serene-spontaneity" --detach
-            fi
+            railway up --service=serene-spontaneity
+            railway up --detach
+
+
+tags_only: &tags_only
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^.*/
 
 workflows:
+  version: 1
   deploy_pipeline:
     jobs:
-      - deploy_app_to_railway
+      - deploy_app_to_railway:
+          filters:
+            branches:
+              only:
+                - main
