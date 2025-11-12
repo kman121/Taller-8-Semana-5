@@ -26,11 +26,29 @@ jobs:
       - run: node --version 
       - run: npm i -g @railway/cli
       - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan "${CIRCLE_JOB}" \
+              --environment-name="Railway" \
+              --component-name="bankchurn-api" \
+              --target-version="1.0.${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}"
+      - run:
           name: Deploy to Railway App
           command: |
             cd bankchurn-api
             railway up --service=serene-spontaneity
             railway up --detach
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update "${CIRCLE_JOB}" --status=RUNNING
+      - run:
+          name: Update deployment status to success
+          command: circleci run release update "${CIRCLE_JOB}" --status=SUCCESS
+          when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update "${CIRCLE_JOB}" --status=FAILED
+          when: on_fail
 
 
 tags_only: &tags_only
